@@ -39,11 +39,11 @@ O Claude escreve apenas um **roteiro em JSON**. Um motor próprio, feito com `ca
 
 ## Exemplos
 
-Mesmo roteiro (`exemplos/seguranca-ia.json`), nos três formatos:
+Exemplo de vídeo no formato 1:1 e estilo noturno, em que cada card compara um mito com a verdade:
 
-| 9:16 (passo 5) | 4:5 (passo 3) | 1:1 (passo 3) |
-|---|---|---|
-| ![9:16](docs/animafluxo-9x16-passo5.png) | ![4:5](docs/animafluxo-4x5-passo3.png) | ![1:1](docs/animafluxo-1x1-passo3.png) |
+| Mito 1 | Mito 2 |
+|---|---|
+| ![Mito 1](docs/mito1.png) | ![Mito 2](docs/mito2.png) |
 
 ---
 

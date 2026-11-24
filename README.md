@@ -39,23 +39,11 @@ O Claude escreve apenas um **roteiro em JSON**. Um motor próprio, feito com `ca
 
 ## Exemplos
 
-### Quadros gerados pela AnimaFluxo
-
 Mesmo roteiro (`exemplos/seguranca-ia.json`), nos três formatos:
 
 | 9:16 (passo 5) | 4:5 (passo 3) | 1:1 (passo 3) |
 |---|---|---|
 | ![9:16](docs/animafluxo-9x16-passo5.png) | ![4:5](docs/animafluxo-4x5-passo3.png) | ![1:1](docs/animafluxo-1x1-passo3.png) |
-
-### Referência visual: vídeo "mito × verdade"
-
-Estes dois quadros são de um vídeo feito antes, em formato 1:1 e estilo noturno, com a skill [video-animado-skill](https://github.com/eduardo-toste/video-animado-skill) (não com a AnimaFluxo). Ficam aqui como **referência do estilo de conteúdo** que inspirou o projeto: cada card compara o que as pessoas acreditam com o que de fato acontece.
-
-| Mito 1 | Mito 2 |
-|---|---|
-| ![Mito 1](docs/referencia-mito-1.png) | ![Mito 2](docs/referencia-mito-2.png) |
-
-> A AnimaFluxo desenha **fluxos** (caixas, setas, decisões e loops). O layout "mito × verdade" em duas colunas ainda não existe nela.
 
 ---
 

@@ -26,7 +26,6 @@ O Claude escreve apenas um **roteiro em JSON**. Um motor próprio, feito com `ca
 - [Linha do tempo do vídeo](#linha-do-tempo-do-vídeo)
 - [Limitações](#limitações)
 - [Solução de problemas](#solução-de-problemas)
-- [Créditos e licença](#créditos-e-licença)
 
 ---
 

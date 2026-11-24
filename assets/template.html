@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AnimaFluxo</title>
+<style>
+:root{color-scheme:dark}
+html,body{margin:0;height:100%;background:#05070d;font-family:system-ui,'Segoe UI',Arial,sans-serif;color:#e8f0ff}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+canvas{max-height:calc(100vh - 90px);max-width:96vw;width:auto;height:auto;border-radius:12px;box-shadow:0 10px 40px #0008}
+#bar{display:flex;gap:10px;flex-wrap:wrap;justify-content:center}
+button{background:#1e293b;color:#e8f0ff;border:1px solid #334155;border-radius:8px;padding:10px 16px;font-size:15px;cursor:pointer}
+button:hover{background:#334155}
+#msg{font-size:13px;color:#94a3b8;min-height:16px}
+body.rec #bar,body.rec #msg{display:none}
+body.rec canvas{max-height:100vh;border-radius:0}
+</style></head><body>
+<canvas id="c" width="1080" height="1920"></canvas>
+<div id="bar"><button id="bp">▶ Reproduzir</button><button id="be">⬇ Exportar vídeo</button><button id="br">⏺ Modo gravação (Esc sai)</button></div>
+<div id="msg"></div>
+<script>
+const ROTEIRO=/*ROTEIRO_INICIO*/{}/*ROTEIRO_FIM*/;
+
+const FMTS={
+ '9:16':{H:1920,L:'v',cy:160,ty:262,tf:80,tl:92,xf:40,xl:56,nh:124,gap:72,nf:40,nl:48,tm:740,iy:740,is:1,ch:540,oy:520},
+ '4:5':{H:1350,L:'v',cy:130,ty:216,tf:68,tl:78,xf:34,xl:48,nh:100,gap:54,nf:34,nl:42,tm:0,iy:470,is:.88,ch:170,oy:330},
+ '1:1':{H:1080,L:'h',cy:110,ty:190,tf:62,tl:70,xf:32,xl:44,nh:150,gap:56,nf:28,nl:34,tm:0,iy:300,is:.8,ch:140,oy:210}};
+const cv=document.getElementById('c'),X=cv.getContext('2d'),W=1080,msg=document.getElementById('msg');
+const FM=FMTS[ROTEIRO.formato]||FMTS['9:16'],H=FM.H;cv.width=W;cv.height=H;
+const FF="'Segoe UI',system-ui,Arial,sans-serif";
+const TEMAS={
+ tecnico:{bg:'#0b1220',grid:'#15223a',pn:'#111c30',tx:'#e8f0ff',mu:'#8ea3c4',ac:['#38bdf8','#a78bfa','#34d399']},
+ papel:{bg:'#f6f1e7',grid:'#e6dccb',pn:'#fffdf8',tx:'#1c1917',mu:'#6b6458',ac:['#2563eb','#d97706','#059669']},
+ neon:{bg:'#0a0a0f',grid:'#1a1a26',pn:'#12121c',tx:'#fafafa',mu:'#9a9ab0',ac:['#f0abfc','#fde047','#5eead4']}
+};
+const R=ROTEIRO,T=TEMAS[R.tema]||TEMAS.tecnico;
+const ST={ok:'#22c55e',bad:'#ef4444',q:'#f59e0b'};
+const D_INTRO=3.2,D_PASSO=7,D_OUTRO=4.6,TR=0.7;
+const cenas=[{tipo:'intro',d:D_INTRO}].concat(R.passos.map((p,i)=>({tipo:'passo',d:D_PASSO,p,i})),[{tipo:'outro',d:D_OUTRO}]);
+let acc=0;cenas.forEach(c=>{c.s=acc;acc+=c.d});const TOTAL=acc;
+
+const cl=(v,a=0,b=1)=>Math.min(b,Math.max(a,v));
+const ez=t=>1-Math.pow(1-cl(t),3);
+const rv=(lt,t0,d)=>ez((lt-t0)/d);
+
+function wrap(txt,max){const w=String(txt).split(' '),L=[];let l='';
+ for(const x of w){const t=l?l+' '+x:x;if(X.measureText(t).width>max&&l){L.push(l);l=x}else l=t}
+ if(l)L.push(l);return L}
+function texto(txt,x,y,font,cor,max,lh,al=1,align='left'){
+ X.font=font;X.fillStyle=cor;X.textAlign=align;X.textBaseline='top';X.globalAlpha=al;
+ const L=wrap(txt,max);L.forEach((l,i)=>X.fillText(l,x,y+i*lh));X.globalAlpha=1;return y+L.length*lh}
+function cabeca(x,y,a,cor){X.fillStyle=cor;X.save();X.translate(x,y);X.rotate(a);
+ X.beginPath();X.moveTo(0,0);X.lineTo(-24,-13);X.lineTo(-24,13);X.closePath();X.fill();X.restore()}
+function seta(x1,y1,x2,y2,cor,p){if(p<=0)return;X.strokeStyle=cor;X.lineWidth=6;X.lineCap='round';
+ X.beginPath();X.moveTo(x1,y1);X.lineTo(x1+(x2-x1)*p,y1+(y2-y1)*p);X.stroke();
+ if(p>0.98)cabeca(x2,y2,Math.atan2(y2-y1,x2-x1),cor)}
+
+function fundo(t){X.fillStyle=T.bg;X.fillRect(0,0,W,H);X.strokeStyle=T.grid;X.lineWidth=2;
+ const o=(t*14)%60;X.beginPath();
+ for(let x=-o;x<W;x+=60){X.moveTo(x,0);X.lineTo(x,H)}
+ for(let y=-o;y<H;y+=60){X.moveTo(0,y);X.lineTo(W,y)}X.stroke()}
+
+function barra(t){const n=R.passos.length,done=cl((t-D_INTRO)/D_PASSO,0,n),g=10,w=(960-g*(n-1))/n;
+ for(let i=0;i<n;i++){const x=60+i*(w+g);X.fillStyle=T.grid;X.beginPath();X.roundRect(x,70,w,12,6);X.fill();
+  const f=cl(done-i);if(f>0){X.fillStyle=T.ac[(R.passos[i].cat||0)%3];X.beginPath();X.roundRect(x,70,w*f,12,6);X.fill()}}}
+
+function intro(lt){const s=FM.is,y0=FM.iy;
+ X.strokeStyle=T.ac[0];X.lineWidth=8;X.lineCap='round';X.beginPath();X.moveTo(60,y0-40);X.lineTo(60+360*rv(lt,0,0.8),y0-40);X.stroke();
+ let y=texto(R.titulo,60,y0,'800 '+Math.round(112*s)+'px '+FF,T.tx,960,Math.round(126*s),rv(lt,0.3,0.6));
+ texto(R.subtitulo||'',60,y+30,'400 '+Math.round(46*s)+'px '+FF,T.mu,940,Math.round(62*s),rv(lt,0.9,0.6));
+ let x=60;const cy=H-FM.ch;(R.categorias||[]).forEach((c,i)=>{X.font='700 34px '+FF;const w=X.measureText(c).width+52,a=rv(lt,1.4+i*0.25,0.4),cor=T.ac[i%3];
+  X.globalAlpha=a;X.strokeStyle=cor;X.lineWidth=4;X.beginPath();X.roundRect(x,cy,w,64,32);X.stroke();
+  X.fillStyle=cor;X.textAlign='left';X.textBaseline='middle';X.fillText(c,x+26,cy+33);X.globalAlpha=1;x+=w+18})}
+
+function caixa(nd,cx,cy,w,hh,al,ac,cent){const cor=ST[nd.k]||ac;
+ X.save();X.globalAlpha=al;X.translate(cx,cy);const s=0.92+0.08*al;X.scale(s,s);
+ X.fillStyle=T.pn;X.strokeStyle=cor;X.lineWidth=5;if(nd.k==='q')X.setLineDash([16,10]);
+ X.beginPath();X.roundRect(-w/2,-hh/2,w,hh,22);X.fill();X.stroke();X.setLineDash([]);
+ const f='700 '+FM.nf+'px '+FF;X.font=f;const mx=cent?w-24:w-110,th=wrap(nd.t,mx).length*FM.nl;
+ if(cent)texto(nd.t,0,-th/2,f,T.tx,mx,FM.nl,1,'center');
+ else{X.fillStyle=cor;X.beginPath();X.arc(-w/2+44,0,10,0,7);X.fill();texto(nd.t,-w/2+80,-th/2,f,T.tx,mx,FM.nl,1)}
+ X.restore()}
+
+function fluxoV(f,p,ac,lt,top){const nh=FM.nh,gap=FM.gap,nx=100,nw=600,pos=f.map((_,i)=>top+i*(nh+gap));
+ f.forEach((nd,i)=>{const t0=1.6+i*0.8;
+  if(i>0)seta(nx+nw/2,pos[i-1]+nh,nx+nw/2,pos[i]-2,T.mu,rv(lt,t0-0.35,0.35));
+  const al=rv(lt,t0,0.45);if(al>0)caixa(nd,nx+nw/2,pos[i]+nh/2,nw,nh,al,ac,false)});
+ const tl=1.6+f.length*0.8;
+ if(p.loop){const q=rv(lt,tl,0.9),xs=nx+nw,y1=pos[p.loop.de]+nh/2,y2=pos[p.loop.para]+nh/2,bx=xs+180;
+  if(q>0){X.strokeStyle=ST.q;X.lineWidth=6;X.lineCap='round';X.setLineDash([(Math.abs(y1-y2)+600)*q,6000]);
+   X.beginPath();X.moveTo(xs,y1);X.bezierCurveTo(bx,y1,bx,y2,xs+4,y2);X.stroke();X.setLineDash([]);
+   if(q>0.97)cabeca(xs+4,y2,Math.PI,ST.q);
+   X.font='600 30px '+FF;const L=wrap(p.loop.rotulo||'',190);
+   texto(p.loop.rotulo||'',858,(y1+y2)/2-L.length*17,'600 30px '+FF,ST.q,190,36,q)}}
+ return pos[f.length-1]+nh}
+
+function fluxoH(f,p,ac,lt,top){const n=f.length,g=FM.gap,w=(960-g*(n-1))/n,hh=FM.nh,cx=i=>60+i*(w+g)+w/2;
+ f.forEach((nd,i)=>{const t0=1.6+i*0.8;
+  if(i>0)seta(cx(i-1)+w/2,top+hh/2,cx(i)-w/2-2,top+hh/2,T.mu,rv(lt,t0-0.35,0.35));
+  const al=rv(lt,t0,0.45);if(al>0)caixa(nd,cx(i),top+hh/2,w,hh,al,ac,true)});
+ let fim=top+hh;const tl=1.6+n*0.8;
+ if(p.loop){const q=rv(lt,tl,0.9),a=cx(p.loop.de),b=cx(p.loop.para),yb=top+hh,dp=90;
+  if(q>0){X.strokeStyle=ST.q;X.lineWidth=6;X.lineCap='round';X.setLineDash([(Math.abs(a-b)+400)*q,6000]);
+   X.beginPath();X.moveTo(a,yb);X.bezierCurveTo(a,yb+dp,b,yb+dp,b,yb+4);X.stroke();X.setLineDash([]);
+   if(q>0.97)cabeca(b,yb+4,-Math.PI/2,ST.q);
+   texto(p.loop.rotulo||'',(a+b)/2,yb+dp*0.75+10,'600 28px '+FF,ST.q,600,34,q,'center')}
+  fim=yb+dp*0.75+48}
+ return fim}
+
+function passo(c,lt){
+ const p=c.p,n=R.passos.length,ac=T.ac[(p.cat||0)%3],cat=(R.categorias[p.cat]||'').toUpperCase(),f=p.fluxo,hz=FM.L==='h';
+ let a=rv(lt,0.2,0.4);X.globalAlpha=a;X.font='700 34px '+FF;
+ const lab=cat+'  ·  PASSO '+(c.i+1)+'/'+n,w=X.measureText(lab).width+56,dy=(1-a)*20;
+ X.fillStyle=ac;X.beginPath();X.roundRect(60,FM.cy+dy,w,64,32);X.fill();
+ X.fillStyle=T.bg;X.textAlign='left';X.textBaseline='middle';X.fillText(lab,88,FM.cy+32+dy);X.globalAlpha=1;
+ let y=texto(p.titulo,60,FM.ty,'800 '+FM.tf+'px '+FF,T.tx,960,FM.tl,rv(lt,0.4,0.5));
+ y=texto(p.texto,60,y+24,'400 '+FM.xf+'px '+FF,T.mu,940,FM.xl,rv(lt,0.9,0.5));
+ const top=Math.max(y+44,FM.tm),fim=hz?fluxoH(f,p,ac,lt,top):fluxoV(f,p,ac,lt,top),tl=1.6+f.length*0.8;
+ if(p.bloqueio){const a2=rv(lt,tl+0.5,0.5),fs=Math.round(FM.xf*0.9),lh=Math.round(fs*1.33);
+  X.font='600 '+fs+'px '+FF;const txt='✕  '+p.bloqueio,h=wrap(txt,860).length*lh+52,by=fim+(hz?40:60);
+  if(a2>0){X.globalAlpha=a2;X.fillStyle=ST.bad+'26';X.strokeStyle=ST.bad;X.lineWidth=4;X.beginPath();X.roundRect(60,by,960,h,20);X.fill();X.stroke();X.globalAlpha=1;
+   texto(txt,96,by+26,'600 '+fs+'px '+FF,ST.bad,880,lh,a2)}}}
+
+function outro(lt){const s=FM.is,fs=Math.round(92*s);
+ const y=texto(R.fechamento||'',60,FM.oy,'800 '+fs+'px '+FF,T.tx,960,Math.round(fs*1.17),rv(lt,0.2,0.6));
+ const a=rv(lt,1.4,0.6),cf=Math.round(48*Math.max(s,.85)),cl2=Math.round(cf*1.33);X.font='700 '+cf+'px '+FF;
+ const h=wrap(R.cta||'',880).length*cl2+72;
+ X.globalAlpha=a;X.fillStyle=T.ac[0];X.beginPath();X.roundRect(60,y+70,960,h,28);X.fill();X.globalAlpha=1;
+ texto(R.cta||'',100,y+70+36,'700 '+cf+'px '+FF,T.bg,880,cl2,a);
+ if(R.autor)texto(R.autor,60,H-140,'400 34px '+FF,T.mu,960,44,rv(lt,2,0.5))}
+
+function cena(c,lt){c.tipo==='intro'?intro(lt):c.tipo==='passo'?passo(c,lt):outro(lt)}
+function render(t){t=cl(t,0,TOTAL);fundo(t);let ci=cenas.findIndex(c=>t<c.s+c.d);if(ci<0)ci=cenas.length-1;
+ const c=cenas[ci],lt=t-c.s;
+ if(ci>0&&lt<TR){const e=ez(lt/TR),pv=cenas[ci-1];
+  X.save();X.translate(-e*W,0);cena(pv,pv.d);X.restore();
+  X.save();X.translate((1-e)*W,0);cena(c,lt);X.restore()}else cena(c,lt);
+ barra(t)}
+
+let ini=0,tocando=false,fim=null;
+function loop(){if(!tocando)return;const t=(performance.now()-ini)/1000;render(t);
+ if(t>=TOTAL+0.6){tocando=false;if(fim)fim();return}requestAnimationFrame(loop)}
+function tocar(cb){fim=cb||null;ini=performance.now();tocando=true;requestAnimationFrame(loop)}
+
+function exportar(){
+ const tipos=['video/mp4;codecs=avc1','video/mp4','video/webm;codecs=vp9','video/webm'];
+ const mime=tipos.find(m=>window.MediaRecorder&&MediaRecorder.isTypeSupported(m));
+ if(!mime){alert('Seu navegador não suporta gravação. Use Chrome ou Edge.');return}
+ const rec=new MediaRecorder(cv.captureStream(30),{mimeType:mime,videoBitsPerSecond:10e6}),ch=[];
+ rec.ondataavailable=e=>{if(e.data.size)ch.push(e.data)};
+ rec.onstop=()=>{const ext=mime.indexOf('mp4')>0?'mp4':'webm',a=document.createElement('a');
+  a.href=URL.createObjectURL(new Blob(ch,{type:mime}));a.download=(R.arquivo||'video')+'.'+ext;a.click();
+  msg.textContent='Pronto! Arquivo salvo ('+ext+').'};
+ rec.start();msg.textContent='Gravando... não troque de aba até terminar.';tocar(()=>rec.stop())}
+
+document.getElementById('bp').onclick=()=>{msg.textContent='';tocar()};
+document.getElementById('be').onclick=exportar;
+document.getElementById('br').onclick=()=>{document.body.classList.add('rec');tocar()};
+addEventListener('keydown',e=>{if(e.key==='Escape'){document.body.classList.remove('rec');tocando=false}});
+document.title=R.titulo||'AnimaFluxo';
+render(2.4);
+</script></body></html>

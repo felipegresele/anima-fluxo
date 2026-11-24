@@ -1,0 +1,28 @@
+{
+ "arquivo": "estagiario-rapido",
+ "titulo": "Estagiário rápido, revisor atento",
+ "subtitulo": "Como programar com IA sem criar código inseguro",
+ "tema": "tecnico",
+ "categorias": ["Antes", "Durante", "Depois"],
+ "passos": [
+  {"cat":0,"titulo":"Faça o briefing","texto":"Diga o que precisa, onde vai rodar e o que não pode quebrar.",
+   "fluxo":[{"t":"Você"},{"t":"Briefing claro"},{"t":"IA"}],
+   "bloqueio":"Senha, token, .env e dados de cliente nunca entram no chat"},
+  {"cat":0,"titulo":"Peça pouco por vez","texto":"Uma tarefa pequena por pedido. Pedir o sistema todo gera o que você não consegue revisar.",
+   "fluxo":[{"t":"Tarefa pequena"},{"t":"IA"},{"t":"Trecho de código"}]},
+  {"cat":1,"titulo":"Leia antes de aceitar","texto":"Se você não consegue explicar o trecho, ele ainda não é seu.",
+   "fluxo":[{"t":"Trecho recebido"},{"t":"Você lê"},{"t":"Entendi tudo?","k":"q"},{"t":"Aceita","k":"ok"}],
+   "loop":{"de":2,"para":1,"rotulo":"não: pede explicação"}},
+  {"cat":1,"titulo":"Tente quebrar","texto":"Rode no seu computador com entradas erradas e casos extremos.",
+   "fluxo":[{"t":"Código"},{"t":"Testes locais"},{"t":"Passou?","k":"q"},{"t":"Segue","k":"ok"}],
+   "loop":{"de":2,"para":0,"rotulo":"falhou: ajusta"}},
+  {"cat":2,"titulo":"Caça aos 3 alertas","texto":"Antes de subir, olhe o código como se fosse de outra pessoa.",
+   "fluxo":[{"t":"Código"},{"t":"Verificação de segurança"},{"t":"Liberado","k":"ok"}],
+   "bloqueio":"Barra se achar: senha no código, SQL concatenado ou erro engolido"},
+  {"cat":2,"titulo":"Merge com portões","texto":"Só entra na versão final quem passa por todas as etapas.",
+   "fluxo":[{"t":"Testes passando"},{"t":"Análise de segurança"},{"t":"Revisão de outra pessoa"},{"t":"Merge","k":"ok"}]}
+ ],
+ "fechamento": "Quem acelera sem revisar não ganha tempo, só adia o problema.",
+ "cta": "Qual desses passos você mais pula? Conta nos comentários.",
+ "autor": ""
+}
